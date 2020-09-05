@@ -25,7 +25,7 @@ Base.prepare(engine, reflect=True)
 measurement = Base.classes.measurement
 station = Base.classes.station
 
-# Create link from Pythong to database
+# Create link from Python to database
 session = Session(engine)
 
 #################################################
