@@ -50,13 +50,24 @@ def homePage():
     return """ <html>
         <h1> Welcome to the Hawaii Climate Info Site</h1>
         <img src = "https://media.giphy.com/media/5QZoin5YqkPF7kXXoI/giphy.gif" ALT="Hawaii Beach" width="400" height="200" style="vertical-align:middle;margin:0px 50px">
-        <p> Hawaii's climate is characteristically tropical but with moderate temperatures and humidity due to the influence of north and eastern trade winds. Summer average high temperatures peak at 84°F (28.9°C), as highs usually do not breach 90°F (32.2°C), while the lows seldom drop below 70°F (21.1°C). Winter average high temperatures are usually at 79°F (26.1°C), and the lows seldom dip below 65°F (18.3°C) at night. Hawaii has the lowest record high temperature at 100°F (37.8°C) and is the only American state never to record a temperature below 32°F (0°C).</p>
-        <h3>Precipitation Information:</h3>
-        <p> Precipitation in meteorology refers to all forms of liquid or solid water particles that form in the atmosphere and then fall to the earth's surface. Types of precipitation include hail, sleet, snow, rain, and drizzle. Frost and dew are not classified as precipitation because they form directly on solid surfaces.</p>
-        <h3>Temperature Information:</h3>
-        <h3>Start Day Information:</h3>
-        <h3>Start & End Day Information:</h3>
-   </html>
+        <p> Hawaii is a popular tourist destination due to the islands characteristic tropical climate. The Pacific Ocean that surrounds Hawaii provides a vast amount of fresh sea air that does not allow the temperatures of the islands to reach the same high levels that are typical of the tropics.<br><br> Summer average high temperatures peak at 84°F (28.9°C), while the lows seldom drop below 70°F (21.1°C). Winter average high temperatures are usually at 79°F (26.1°C), and the lows seldom dip below 65°F (18.3°C) at night. Hawaii has the lowest record high temperature at 100°F (37.8°C) and is the only American state never to record a temperature below 32°F (0°C).</p>
+        <h3> Available API routes:</h3>
+        <ul>
+            <li> Hawaii Precipitation: 
+            <br>
+            <a href = "/api/v1.0/precipitation"> /api/v1.0/precipitation</a><br><br>
+            <li> Hawaii Weather Stations Data:
+            <br>
+            <a href = "/api/v1.0/stations">/api/v1.0/stations</a><br><br>
+            <li> Hawaii Temperature Observations:
+            <br>
+            <a href = "/api/v1.0/tobs">/api/v1.0/tobs</a><br><br>
+            </li>
+            <li> Start of Day Observations:
+            <br>
+            <a href = ""/api/v1.0/startDay">/api/v1.0/startDay</a><br><br>
+        </ul>
+</html>
     """
 
 # Precipitation
@@ -64,19 +75,18 @@ def homePage():
 def precipitation():
 # Create our session (link) from Python to the DB
     session = Session(engine)
-
-# Query all precipitation
-    results = session.query(measurement.date,measurement.prcp).all()
-
-# Query all precipitation for a year 
+    lastDate = dt.date(2017,8,23)
     prevYear = lastDate - dt.timedelta(365)
+# Query all precipitation for a year
+    result = session.query(measurement.date,measurement.prcp).filter(measurement.date>=prevYear).all()
+    
 # Convert the query results to a dictionary using 'date' as the key and 'prcp' as the value
-    session.close()
 
 # Convert list of tuples into normal list
-    prcp_data = list(np.ravel(results))
+    prcp_data = list(np.ravel(result))
 # Return a JSON list
     return jsonify(prcp_data)
+session.close()
 
 # Stations
 @app.route("/api/v1.0/stations")
@@ -90,33 +100,54 @@ def stations():
 # Return a JSON list
     return jsonify(stationsList)
 
-    session.close()
+session.close()
 
 # TOBS
-# @app.route("/api/v1.0/tobs")
-# def tobs():
-# # Create our session (link) from Python to the DB
-#     session = Session(engine)
-# # Query all stations
-#     stationsAll = session.query(station.name, station.station ).all()
-# # Convert list of tuples into normal list
-#     stationsList = list(np.ravel(stationsAll))
-# # Return a JSON list
-#     return jsonify(stationsList)
+@app.route("/api/v1.0/tobs")
+def tobs():
+# Create our session (link) from Python to the DB
+    session = Session(engine)
+# Query the dates and temperature observations for the previous year
+    lastDate = dt.date(2017,8,23)
+    prevYear = lastDate - dt.timedelta(365)
+    tobs_max = session.query(measurement.tobs).filter(measurement.date >= prevYear).\
+    filter(measurement.station == "USC00519281").\
+    order_by(measurement.date).all()
 
-#     session.close()
+# Convert list of tuples into normal list
+    tobs_list = list(np.ravel(tobs_max))
+# Return a JSON list
+    return jsonify(tobs_list)
 
-    # # Create a dictionary from the row data and append to a list of all_passengers
-    # all_passengers = []
-    # for name, age, sex in results:
-    #     passenger_dict = {}
-    #     passenger_dict["name"] = name
-    #     passenger_dict["age"] = age
-    #     passenger_dict["sex"] = sex
-    #     all_passengers.append(passenger_dict)
+session.close()
 
-    # return jsonify(all_passengers)
+@app.route("/api/v1.0/startDay")
+def startDay():
+# Create our session (link) from Python to the DB
+    session = Session(engine)
+# Query the dates and temperature observations for the previous year
+    start_day = session.query(measurement.date, func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs)).\
+    filter(measurement.date >= prevYear).\
+    order_by(measurement.date).all()
 
+# Convert list of tuples into normal list
+    start_day_list = list(np.ravel(start_day))
+# Return a JSON list
+    return jsonify(start_day_list)
+
+@app.route("/api/v1.0/end")
+def end():
+# Create our session (link) from Python to the DB
+    session = Session(engine)
+# Query the dates and temperature observations for the previous year
+    end_day = session.query(measurement.date, func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs)).\
+    filter(measurement.date >= prevYear).\
+    order_by(measurement.date).all()
+
+# Convert list of tuples into normal list
+    end_day_list = list(np.ravel(end_day))
+# Return a JSON list
+    return jsonify(end_day_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
