@@ -39,7 +39,6 @@ session = Session(engine)
 #################################################
 app = Flask(__name__)
 
-
 #################################################
 # Flask Routes
 #################################################
@@ -55,18 +54,17 @@ def homePage():
         <ul>
             <li> Hawaii Precipitation: 
             <br>
-            <a href = "/api/v1.0/precipitation"> /api/v1.0/precipitation</a><br><br>
+            <a href = "/api/v1.0/precipitation">/api/v1.0/precipitation</a><br><br>
             <li> Hawaii Weather Stations Data:
             <br>
             <a href = "/api/v1.0/stations">/api/v1.0/stations</a><br><br>
             <li> Hawaii Temperature Observations:
             <br>
             <a href = "/api/v1.0/tobs">/api/v1.0/tobs</a><br><br>
-            </li>
             <li> Start of Day Observations:
-            <br>
-            <a href = ""/api/v1.0/startDay">/api/v1.0/startDay</a><br><br>
-        </ul>
+            <a href ="/api/v1.0/<start>/<end>">/api/v1.0/<start>/<end></a><br><br>
+            </li>
+        </ul>       
 </html>
     """
 
@@ -75,13 +73,13 @@ def homePage():
 def precipitation():
 # Create our session (link) from Python to the DB
     session = Session(engine)
+
     lastDate = dt.date(2017,8,23)
     prevYear = lastDate - dt.timedelta(365)
 # Query all precipitation for a year
     result = session.query(measurement.date,measurement.prcp).filter(measurement.date>=prevYear).all()
     
 # Convert the query results to a dictionary using 'date' as the key and 'prcp' as the value
-
 # Convert list of tuples into normal list
     prcp_data = list(np.ravel(result))
 # Return a JSON list
@@ -94,12 +92,11 @@ def stations():
 # Create our session (link) from Python to the DB
     session = Session(engine)
 # Query all stations
-    stationsAll = session.query(station.name, station.station ).all()
+    stationsAll = session.query(station.name, station.station).all()
 # Convert list of tuples into normal list
     stationsList = list(np.ravel(stationsAll))
 # Return a JSON list
     return jsonify(stationsList)
-
 session.close()
 
 # TOBS
@@ -118,36 +115,23 @@ def tobs():
     tobs_list = list(np.ravel(tobs_max))
 # Return a JSON list
     return jsonify(tobs_list)
-
 session.close()
 
-@app.route("/api/v1.0/startDay")
-def startDay():
+# Start & End
+@app.route("/api/v1.0/<start>")
+@app.route("/api/v1.0/<start>/<end>")
+def start_end(start, end):
 # Create our session (link) from Python to the DB
     session = Session(engine)
 # Query the dates and temperature observations for the previous year
-    start_day = session.query(measurement.date, func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs)).\
-    filter(measurement.date >= prevYear).\
-    order_by(measurement.date).all()
-
+    vacay_dates = session.query(measurement.date, func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end).group_by(measurement.date).all()
+  
 # Convert list of tuples into normal list
-    start_day_list = list(np.ravel(start_day))
+    vacay_list = list(np.ravel(vacay_dates))
 # Return a JSON list
-    return jsonify(start_day_list)
+    return jsonify(vacay_list)
 
-@app.route("/api/v1.0/end")
-def end():
-# Create our session (link) from Python to the DB
-    session = Session(engine)
-# Query the dates and temperature observations for the previous year
-    end_day = session.query(measurement.date, func.min(measurement.tobs),func.max(measurement.tobs),func.avg(measurement.tobs)).\
-    filter(measurement.date >= prevYear).\
-    order_by(measurement.date).all()
-
-# Convert list of tuples into normal list
-    end_day_list = list(np.ravel(end_day))
-# Return a JSON list
-    return jsonify(end_day_list)
+session.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
