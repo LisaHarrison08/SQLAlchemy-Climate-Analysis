@@ -61,8 +61,8 @@ def homePage():
             <li> Hawaii Temperature Observations:
             <br>
             <a href = "/api/v1.0/tobs">/api/v1.0/tobs</a><br><br>
-            <li> Start of Day Observations:
-            <a href ="/api/v1.0/<start>/<end>">/api/v1.0/<start>/<end></a><br><br>
+            <li> Enter Start Date & End Date for Observations:
+            <a href ="/api/v1.0/<start>/<end>">/api/v1.0/startDate/endDate</a><br><br>
             </li>
         </ul>       
 </html>
@@ -118,7 +118,6 @@ def tobs():
 session.close()
 
 # Start & End
-@app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")
 def start_end(start, end):
 # Create our session (link) from Python to the DB
